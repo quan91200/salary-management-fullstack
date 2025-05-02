@@ -1,0 +1,5 @@
+export { default as Employee } from './Employee'
+export { default as Department } from './Department'
+export { default as Position } from './Position'
+export { default as Salary } from './Salary'
+export { default as Deduction } from './Deduction'

@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+.bg-login {
+  background-image: url('/public/assets/BG.png');
+}
+
+.bg-icon {
+  background-image: url('/public/assets/Image.png');
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: center;
+}
+
+.table-container {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden; /* Ngừng cuộn dọc */
+}
