@@ -12,11 +12,11 @@ const Edit = ({ isOpen, onClose, advance, onUpdated }) => {
 
     useEffect(() => {
         if (!isOpen || !advance) return
-
+        console.log('advance: ', advance)
         reset({
             employee_id: String(advance.employee_id) || '',
             advance_date: advance.advance_date || '',
-            amount: advance.amount || '',
+            amount: parseFloat(advance.amount) || 0,
             reason: advance.reason || ''
         })
     }, [isOpen, reset, advance])

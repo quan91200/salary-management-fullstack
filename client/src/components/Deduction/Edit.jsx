@@ -16,7 +16,7 @@ const Edit = ({ isOpen, onClose, onUpdated, deduction }) => {
         reset({
             code: deduction?.code || '',
             name: deduction?.name || '',
-            percentage: deduction?.percentage * 100 || '',
+            percentage: deduction?.percentage || '',
         })
     }, [isOpen, reset, deduction])
 

@@ -39,13 +39,13 @@ const Advance = () => {
     }
 
     const handleDelete = async (item) => {
-        const confirm = window.confirm(`Bạn có chắc muốn xóa tạm ứng lương của ${item.employees.name}?`)
+        const confirm = window.confirm(`Bạn có chắc muốn xóa tạm ứng lương của ${item.employee.name}?`)
         if (!confirm) return
 
         try {
             await api.delete(item.id)
             fetchData()
-            toast.info(`Đã xóa Tạm ứng của ${item.employees.name}`)
+            toast.info(`Đã xóa Tạm ứng của ${item.employee.name}`)
         } catch (error) {
             console.error('Lỗi khi xóa:', error)
         }

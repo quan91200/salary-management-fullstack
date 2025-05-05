@@ -1,5 +1,7 @@
 export const formatNumberWithComma = (number) => {
-    return new Intl.NumberFormat().format(number)
+    return new Intl.NumberFormat('vi-VN', {
+        maximumFractionDigits: 0
+    }).format(number)
 }
 
 export const formatPercentage = (percentage) => {
