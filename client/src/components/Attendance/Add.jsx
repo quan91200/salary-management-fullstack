@@ -46,6 +46,7 @@ const Add = ({ isOpen, onClose, onCreated }) => {
   const onSubmit = async (data) => {
     setLoading(true)
     console.log("Attendance: ", data)
+
     try {
       const [year, month] = data.apply_date.split('-')
       const payload = {
@@ -53,9 +54,21 @@ const Add = ({ isOpen, onClose, onCreated }) => {
         month: parseInt(month),
         year: parseInt(year),
       }
-      await attendanceApi.create(payload)
+
+      // Gọi API để tạo bảng chấm công
+      const response = await attendanceApi.create(payload)
+
+      // Kiểm tra xem dữ liệu tính toán có được trả về không
+      const { calculatedData } = response.data
+
+      // Log các giá trị tính toán từ server
+      console.table(calculatedData) // In ra bảng với thông tin tính toán
+
+      // Hiển thị thông báo thành công và gọi các callback
       toast.success('Tạo bảng chấm công thành công!')
       console.log("Created: ", payload)
+
+      // Callback khi đã tạo bảng chấm công thành công
       onCreated?.()
       onClose()
     } catch (error) {

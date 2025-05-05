@@ -82,7 +82,17 @@ export const createAttendance = async (req, res) => {
 
     return res.status(200).json({
       message: 'Đã tạo mới chấm công',
-      attendance
+      attendance,
+      calculatedData: {
+        gross_income: employeeTax.gross_income,
+        tax_amount: employeeTax.tax_amount,
+        net_income,
+        min_work_hours: workRule.min_work_hours,
+        hourly_rate,
+        total_work_hours,
+        total_advance,
+        earned_amount
+      }
     })
   } catch (error) {
     console.error('Lỗi khi tạo chấm công:', error)
