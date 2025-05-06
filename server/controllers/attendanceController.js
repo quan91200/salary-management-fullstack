@@ -1,6 +1,6 @@
 import db from '../models/index.js'
 
-const { Employee, Attendance, WorkRule, EmployeeTax, SalaryAdvance } = db
+const { Employee, Attendance, WorkRule, EmployeeTax, SalaryAdvance, Salary } = db
 
 export const createAttendance = async (req, res) => {
   try {
@@ -27,6 +27,18 @@ export const createAttendance = async (req, res) => {
       return res.status(400).json({ message: 'Nhân viên đã được chấm công cho tháng này' })
     }
 
+    const salary = await Salary.findOne({ where: { employee_id, month, year } })
+    if (!salary) {
+      return res.status(404).json({ message: 'Không tìm thấy bảng lương cho nhân viên' })
+    }
+
+    const employeeTax = await EmployeeTax.findOne({
+      where: { employee_id, month, year }
+    })
+    if (!employeeTax) {
+      return res.status(404).json({ message: 'Không tìm thấy bản ghi thuế cho nhân viên' })
+    }
+
     const advances = await SalaryAdvance.findAll({
       where: { employee_id, month, year }
     })
@@ -36,37 +48,29 @@ export const createAttendance = async (req, res) => {
       0
     )
 
-    const employeeTax = await EmployeeTax.findOne({
-      where: { employee_id, month, year }
-    })
-
-    if (!employeeTax) {
-      return res.status(404).json({ message: 'Không tìm thấy bản ghi thuế cho nhân viên' })
-    }
-
     const workRule = await WorkRule.findByPk(work_rule_id)
-
     if (!workRule || !workRule.min_work_hours || workRule.min_work_hours <= 0) {
       return res.status(400).json({ message: 'Quy tắc làm việc không hợp lệ' })
     }
 
-    // Lương thực nhận sau thuế
-    const net_income = parseFloat(employeeTax.gross_income) - parseFloat(employeeTax.tax_amount)
+    const basic_salary = parseFloat(salary.basic_salary || 0)
+    const bonus = parseFloat(salary.total_bonus || 0)
+    const deduction = parseFloat(salary.total_deductions || 0)
+    const tax_amount = parseFloat(employeeTax.tax_amount || 0)
+    const min_work_hours = parseFloat(workRule.min_work_hours || 1)
+    const hourly_rate = basic_salary / min_work_hours
 
-    // Tính lương theo giờ
-    const hourly_rate = net_income / parseFloat(workRule.min_work_hours)
-
-    // Lương thực tế nhận trong tháng
-    const earned_amount = hourly_rate * parseFloat(total_work_hours) - total_advance
+    const earned_amount = (hourly_rate * parseFloat(total_work_hours)) + bonus - tax_amount - deduction - total_advance
 
     console.table({
-      gross_income: employeeTax.gross_income,
-      tax_amount: employeeTax.tax_amount,
-      net_income,
-      min_work_hours: workRule.min_work_hours,
-      hourly_rate,
-      total_work_hours,
+      basic_salary,
+      bonus,
+      tax_amount,
+      deduction,
       total_advance,
+      min_work_hours,
+      total_work_hours,
+      hourly_rate,
       earned_amount
     })
 
@@ -84,13 +88,14 @@ export const createAttendance = async (req, res) => {
       message: 'Đã tạo mới chấm công',
       attendance,
       calculatedData: {
-        gross_income: employeeTax.gross_income,
-        tax_amount: employeeTax.tax_amount,
-        net_income,
-        min_work_hours: workRule.min_work_hours,
-        hourly_rate,
-        total_work_hours,
+        basic_salary,
+        bonus,
+        tax_amount,
+        deduction,
         total_advance,
+        min_work_hours,
+        total_work_hours,
+        hourly_rate,
         earned_amount
       }
     })
@@ -112,47 +117,47 @@ export const updateAttendance = async (req, res) => {
     const month = parseInt(monthStr)
     const year = parseInt(yearStr)
 
-    if (!employee_id || !apply_date || !total_work_hours || !work_rule_id) {
-      return res.status(400).json({ message: 'Thiếu thông tin bắt buộc' })
-    }
-
     const employee = await Employee.findByPk(employee_id)
     if (!employee) {
       return res.status(404).json({ message: 'Không tìm thấy nhân viên' })
     }
 
-    const employeeTax = await EmployeeTax.findOne({
-      where: { employee_id, month, year }
-    })
+    const salary = await Salary.findOne({ where: { employee_id, month, year } })
+    if (!salary) {
+      return res.status(404).json({ message: 'Không tìm thấy bảng lương cho nhân viên' })
+    }
+
+    const employeeTax = await EmployeeTax.findOne({ where: { employee_id, month, year } })
     if (!employeeTax) {
       return res.status(404).json({ message: 'Không tìm thấy bản ghi thuế cho nhân viên' })
     }
 
-    const advances = await SalaryAdvance.findAll({
-      where: { employee_id, month, year }
-    })
-    const total_advance = advances.reduce(
-      (acc, item) => acc + parseFloat(item.amount || 0),
-      0
-    )
+    const advances = await SalaryAdvance.findAll({ where: { employee_id, month, year } })
+    const total_advance = advances.reduce((acc, item) => acc + parseFloat(item.amount || 0), 0)
 
     const workRule = await WorkRule.findByPk(work_rule_id)
     if (!workRule || !workRule.min_work_hours || workRule.min_work_hours <= 0) {
       return res.status(400).json({ message: 'Quy tắc làm việc không hợp lệ' })
     }
 
-    const net_income = parseFloat(employeeTax.gross_income) - parseFloat(employeeTax.tax_amount)
-    const hourly_rate = net_income / parseFloat(workRule.min_work_hours)
-    const earned_amount = hourly_rate * parseFloat(total_work_hours) - total_advance
+    const basic_salary = parseFloat(salary.basic_salary || 0)
+    const bonus = parseFloat(salary.total_bonus || 0)
+    const deduction = parseFloat(salary.total_deductions || 0)
+    const tax_amount = parseFloat(employeeTax.tax_amount || 0)
+    const min_work_hours = parseFloat(workRule.min_work_hours)
+    const hourly_rate = basic_salary / min_work_hours
+
+    const earned_amount = (hourly_rate * parseFloat(total_work_hours)) + bonus - tax_amount - deduction - total_advance
 
     console.table({
-      gross_income: employeeTax.gross_income,
-      tax_amount: employeeTax.tax_amount,
-      net_income,
-      min_work_hours: workRule.min_work_hours,
-      hourly_rate,
-      total_work_hours,
+      basic_salary,
+      bonus,
+      tax_amount,
+      deduction,
       total_advance,
+      min_work_hours,
+      total_work_hours,
+      hourly_rate,
       earned_amount
     })
 
@@ -170,14 +175,22 @@ export const updateAttendance = async (req, res) => {
 
     return res.status(200).json({
       message: 'Đã cập nhật chấm công',
-      attendance
+      attendance,
+      calculatedData: {
+        basic_salary,
+        bonus,
+        tax_amount,
+        deduction,
+        total_advance,
+        min_work_hours,
+        total_work_hours,
+        hourly_rate,
+        earned_amount
+      }
     })
   } catch (error) {
     console.error('Lỗi khi cập nhật chấm công:', error)
-    return res.status(500).json({
-      message: 'Lỗi máy chủ',
-      error: error.message
-    })
+    return res.status(500).json({ message: 'Lỗi máy chủ', error: error.message })
   }
 }
 
